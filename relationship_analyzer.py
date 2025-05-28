@@ -2,13 +2,7 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 
-def analyze_page_relationship(page1, page2, summary1, summary2, verbose=False):
-    # client = genai.Client(
-    #     vertexai=True,
-    #     project="infinite-mantra-461104-j3",
-    #     location="global",
-    # )
-    
+def analyze_page_relationship(page1, page2, summary1, summary2, verbose=False):    
     load_dotenv()
     client = genai.Client()
     model = "gemini-2.5-flash-preview-05-20"
@@ -22,9 +16,10 @@ def analyze_page_relationship(page1, page2, summary1, summary2, verbose=False):
         Page 2: {page2}
         Summary: {summary2}
 
-        Describe in one clear sentence how these topics are connected or related. Focus on the most direct and meaningful connection. 
+        Describe in one short paragraph how these topics are connected or related. Focus on the most direct and meaningful connection. 
+        If you were able to find the relationships in the summary you were given, tell us where.
         If you can't find an explicit relationship in the summaries, deduce one based on logical connections, shared categories, historical context, 
-        geographical proximity, or conceptual similarities.
+        geographical proximity, or conceptual similarities. If you have deduced this without the help of the summaries, please state it too.
 
         Relationship:
         """
@@ -64,3 +59,4 @@ def analyze_page_relationship(page1, page2, summary1, summary2, verbose=False):
     )
 
     return response.text
+

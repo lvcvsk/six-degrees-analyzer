@@ -20,13 +20,13 @@ async def get_relationships(start: str = Query(...), end: str = Query(...)):
         print(f"Scraping {names[i]} with link: {links[i]}")
         print(f"Scraping {names[i+1]} with link: {links[i+1]}")
 
-        s1, s2 = await scrape_wikipedia_page(links[i]), await scrape_wikipedia_page(links[i+1])
+        summary_1, summary_2 = await scrape_wikipedia_page(links[i]), await scrape_wikipedia_page(links[i+1])
         
         with open(f"summaries/output{i}.txt", "w") as file:
-            file.write(json.dumps(s1, indent=2))
+            file.write(json.dumps(summary_1, indent=2))
         if i == len(names) - 2:
             with open(f"summaries/output{i + 1}.txt", "w") as file:
-                file.write(json.dumps(s2, indent=2))
+                file.write(json.dumps(summary_2, indent=2))
 
         current_relationship["first_name"] = names[i]
         current_relationship["second_name"] = names[i+1]
@@ -34,7 +34,7 @@ async def get_relationships(start: str = Query(...), end: str = Query(...)):
         current_relationship["second_link"] = links[i+1]
         
         print("Prompting the LLM..")
-        current_relationship["relationship"] = analyze_page_relationship(names[i], names[i+1],s1, s2, True)
+        current_relationship["relationship"] = analyze_page_relationship(names[i], names[i+1],summary_1, summary_2)
         results.append(current_relationship)
     return results
     

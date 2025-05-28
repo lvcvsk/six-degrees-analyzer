@@ -1,6 +1,5 @@
 from playwright.async_api import async_playwright
 import random
-from bs4 import BeautifulSoup
 
 async def get_path_between_articles(start, end):
     async with async_playwright() as p:
@@ -14,8 +13,8 @@ async def get_path_between_articles(start, end):
         await second_input.fill(end)
         
         await page.get_by_role("button", name="Go!").click()    
-        await page.wait_for_selector("div.sc-fbguzk")           
         
+        await page.wait_for_selector("div.sc-fbguzk")           
         path_divs = await page.query_selector_all("div.sc-fbguzk")
         if not path_divs:
             print("No path containers found.")
@@ -25,19 +24,19 @@ async def get_path_between_articles(start, end):
         selected_path = random.choice(path_divs)
         links = await selected_path.query_selector_all("a")
 
-        names, hrefs = [], []
+        names, urls = [], []
 
         for link in links:
-            href = await link.get_attribute("href")
+            url = await link.get_attribute("href")
             # get first <p> inside div.sc-brzPDJ
             name_elem = await link.query_selector("div.sc-brzPDJ > p")
+            #TODO: check if second <p> is Disambiguation
             name = await name_elem.inner_text() if name_elem else "Unnamed"
             names.append(name.strip())
-            hrefs.append(href)
-
+            urls.append(url.strip())
         await browser.close()
-        return names, hrefs
+        
+        return names, urls
     
 
-        
 
