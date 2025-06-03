@@ -12,9 +12,9 @@ async def get_path_between_articles(start, end):
         second_input = page.locator('input.react-autosuggest__input').nth(1)
         await second_input.fill(end)
         
-        await page.get_by_role("button", name="Go!").click()    
+        await page.get_by_role("button", name="Go!").click()
 
-        await page.wait_for_selector("div.sc-ffSBbn")
+        await page.wait_for_selector("div.sc-eGjrzz")
         path_divs = await page.query_selector_all("div.sc-ffSBbn")
         if not path_divs:
             print("No path containers found.")
@@ -28,10 +28,8 @@ async def get_path_between_articles(start, end):
 
         for link in links:
             url = await link.get_attribute("href")
-            # Updated selector for the name paragraph inside the card
             name_elem = await link.query_selector("div.sc-cTIdZS > p:nth-child(1)")
-            # Optionally check if it's a disambiguation entry using the second paragraph
-            # subtitle_elem = await link.query_selector("div.sc-cTIdZS > p:nth-child(2)")
+            # TODO: Check for disambiguation entry
             name = await name_elem.inner_text() if name_elem else "Unnamed"
             names.append(name.strip())
             urls.append(url.strip())

@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 import re
 
 def clean_text(text):
-    """Remove extra spaces and newlines"""
     if not text:
         return ""
     return re.sub(r'\s+', ' ', text.strip())
@@ -11,7 +10,7 @@ def clean_text(text):
 
 async def scrape_wikipedia_page(url):
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch()
         page = await browser.new_page()
         await page.goto(url)
 
@@ -21,8 +20,7 @@ async def scrape_wikipedia_page(url):
         title = clean_text(await page.title())
         await browser.close()
 
-    # Get basic info from the infobox
-    basic_info = {}
+    infobox_info = {}
     infobox = soup.find('table', class_='infobox')
     if infobox:
         rows = infobox.find_all('tr')
@@ -33,7 +31,7 @@ async def scrape_wikipedia_page(url):
                 key = clean_text(header.text)
                 value = clean_text(data.text)
                 if key and value:
-                    basic_info[key] = value
+                    infobox_info[key] = value
                         
     see_also_links = []
     div_col = soup.find('div', class_='div-col')
@@ -46,21 +44,8 @@ async def scrape_wikipedia_page(url):
                 if link_text:
                     see_also_links.append(link_text)
                     
-    notable_links = []
-    content_div = soup.find('div', id='mw-content-text')
-    if content_div:
-        wiki_links = content_div.find_all('a', href=re.compile(r'/wiki/'))
-        for link in wiki_links[:20]:  # Limit to most relevant links
-            href = link.get('href', '')
-            if not any(exclude in href for exclude in ['Category:', 'File:', 'Template:']):
-                text = clean_text(link.get_text())
-                if text and len(text) > 2:
-                    notable_links.append({
-                        'text': text,
-                        'href': href
-                    })
-
     key_paragraphs = []
+    content_div = soup.find('div', id='mw-content-text')
     parser_output = content_div.find('div', class_='mw-parser-output')
     if content_div and parser_output:
         paragraphs = parser_output.find_all('p', recursive=False)[:3]
@@ -69,11 +54,10 @@ async def scrape_wikipedia_page(url):
             if len(text) > 50:
                 key_paragraphs.append(text)
                         
-    # Get categories
     categories = []
     category_div = soup.find('div', id='mw-normal-catlinks')
     if category_div:
-        category_links = category_div.find_all('a')
+        category_links = category_div.find_all('a')[1:]
         for link in category_links:
             category_name = clean_text(link.text)
             if category_name:
@@ -82,9 +66,8 @@ async def scrape_wikipedia_page(url):
     return {
         'title': title,
         'url': url,
-        'basic_info': basic_info,
+        'basic_info': infobox_info,
         'categories': categories,
         'see_also': see_also_links,
-        'key_paragraphs': key_paragraphs,
-        'notable_links': notable_links
+        'key_paragraphs': key_paragraphs
     }

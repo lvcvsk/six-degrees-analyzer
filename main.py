@@ -33,7 +33,7 @@ async def get_relationships(start: str = Query(...), end: str = Query(...)):
         current_relationship["second_name"] = names[i+1]
         
         print("Prompting the LLM..")
-        #current_relationship["relationship"] = analyze_page_relationship(names[i], names[i+1], summary_1, summary_2)
+        current_relationship["relationship"] = analyze_page_relationship(names[i], names[i+1], summary_1, summary_2)
         results.append(current_relationship)
         
     return results
