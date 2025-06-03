@@ -7,9 +7,9 @@ async def get_path_between_articles(start, end):
         page = await browser.new_page()          
         await page.goto("https://www.sixdegreesofwikipedia.com/") 
         
-        first_input = page.locator('.react-autosuggest__input').first
+        first_input = page.locator('input.react-autosuggest__input').first
         await first_input.fill(start)
-        second_input = page.locator('.react-autosuggest__input').nth(1)
+        second_input = page.locator('input.react-autosuggest__input').nth(1)
         await second_input.fill(end)
         
         await page.get_by_role("button", name="Go!").click()    
