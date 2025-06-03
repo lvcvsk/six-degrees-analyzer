@@ -20,7 +20,8 @@ async def get_relationships(start: str = Query(...), end: str = Query(...)):
         print(f"Scraping {names[i]} with link: {links[i]}")
         print(f"Scraping {names[i+1]} with link: {links[i+1]}")
 
-        summary_1, summary_2 = await scrape_wikipedia_page(links[i]), await scrape_wikipedia_page(links[i+1])
+        summary_1 = await scrape_wikipedia_page(links[i])
+        summary_2 = await scrape_wikipedia_page(links[i+1])
         
         with open(f"summaries/output{i}.txt", "w") as file:
             file.write(json.dumps(summary_1, indent=2))
@@ -30,11 +31,10 @@ async def get_relationships(start: str = Query(...), end: str = Query(...)):
 
         current_relationship["first_name"] = names[i]
         current_relationship["second_name"] = names[i+1]
-        current_relationship["first_link"] = links[i]
-        current_relationship["second_link"] = links[i+1]
         
         print("Prompting the LLM..")
-        current_relationship["relationship"] = analyze_page_relationship(names[i], names[i+1],summary_1, summary_2)
+        current_relationship["relationship"] = analyze_page_relationship(names[i], names[i+1], summary_1, summary_2)
         results.append(current_relationship)
+        
     return results
     

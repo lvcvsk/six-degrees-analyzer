@@ -17,7 +17,7 @@ def analyze_page_relationship(page1, page2, summary1, summary2, verbose=False):
         Summary: {summary2}
 
         Describe in one short paragraph how these topics are connected or related. Focus on the most direct and meaningful connection. 
-        If you were able to find the relationships in the summary you were given, tell us where.
+        If you were able to find the relationships in the summary you were given, tell me where.
         If you can't find an explicit relationship in the summaries, deduce one based on logical connections, shared categories, historical context, 
         geographical proximity, or conceptual similarities. If you have deduced this without the help of the summaries, please state it too.
 
@@ -35,7 +35,7 @@ def analyze_page_relationship(page1, page2, summary1, summary2, verbose=False):
         temperature=1,
         top_p=1,
         seed=0,
-        max_output_tokens=1024,
+        max_output_tokens=3000,
         safety_settings=[
             types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"),
             types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="OFF"),
@@ -46,12 +46,11 @@ def analyze_page_relationship(page1, page2, summary1, summary2, verbose=False):
     
     if verbose:
         model_info = client.models.get(model=model)
-        print(f"{model_info.input_token_limit=}")
-        # Count tokens using the new client method.
+        print(f"Current model input token limit: {model_info.input_token_limit=}")
+        # model_info.input_token_limit=1048576 for gemini 2.5
         total_tokens = client.models.count_tokens(model=model, contents=prompt)
-        print("total_tokens: ", total_tokens)
+        print("Input total tokens: ", total_tokens)
 
-    # Collect the streamed output into a string
     response = client.models.generate_content(
         model=model,
         contents=contents,

@@ -1,132 +1,90 @@
-import asyncio
-import json
-from datetime import datetime
 from playwright.async_api import async_playwright
+from bs4 import BeautifulSoup
 import re
 
+def clean_text(text):
+    """Remove extra spaces and newlines"""
+    if not text:
+        return ""
+    return re.sub(r'\s+', ' ', text.strip())
+
+
 async def scrape_wikipedia_page(url):
-    """
-    Scrape a Wikipedia page and extract the most important content for LLM analysis
-    """
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        
-        try:
-            await page.goto(url, wait_until='networkidle')
-            
-            # Extract the main content using JavaScript evaluation
-            page_data = await page.evaluate("""
-                () => {
-                    // Helper function to clean text
-                    const cleanText = (text) => text?.replace(/\\s+/g, ' ').trim() || '';
-                    
-                    // Get page title
-                    const title = document.querySelector('h1.firstHeading')?.textContent || '';
-                    
-                    // Get the main summary/introduction (first paragraph)
-                    const introElement = document.querySelector('#mw-content-text .mw-parser-output > p:first-of-type');
-                    const introduction = cleanText(introElement?.textContent || '');
-                    
-                    // Get infobox data (very important for relationships)
-                    const infobox = {};
-                    const infoboxRows = document.querySelectorAll('.infobox tr');
-                    infoboxRows.forEach(row => {
-                        const header = row.querySelector('th, .infobox-label');
-                        const data = row.querySelector('td, .infobox-data');
-                        if (header && data) {
-                            const key = cleanText(header.textContent);
-                            const value = cleanText(data.textContent);
-                            if (key && value) {
-                                infobox[key] = value;
-                            }
-                        }
-                    });
-                    
-                    // Get categories (important for classification)
-                    const categories = Array.from(document.querySelectorAll('#mw-normal-catlinks ul li a'))
-                        .map(link => cleanText(link.textContent))
-                        .filter(cat => cat);
-                    
-                    // Get section headings and their content
-                    const sections = [];
-                    const headings = document.querySelectorAll('#mw-content-text h2, #mw-content-text h3');
-                    
-                    headings.forEach((heading, index) => {
-                        const headingText = cleanText(heading.textContent.replace(/\\[edit\\]/g, ''));
-                        if (!headingText) return;
+        await page.goto(url)
+
+        content = await page.content()
+        soup = BeautifulSoup(content, 'html.parser')
+
+        title = clean_text(await page.title())
+        await browser.close()
+
+    # Get basic info from the infobox
+    basic_info = {}
+    infobox = soup.find('table', class_='infobox')
+    if infobox:
+        rows = infobox.find_all('tr')
+        for row in rows:
+            header = row.find('th')
+            data = row.find('td')
+            if header and data:
+                key = clean_text(header.text)
+                value = clean_text(data.text)
+                if key and value:
+                    basic_info[key] = value
                         
-                        // Get content until next heading
-                        let content = '';
-                        let nextElement = heading.nextElementSibling;
-                        const nextHeading = headings[index + 1];
+    see_also_links = []
+    div_col = soup.find('div', class_='div-col')
+    if div_col:
+        ul_element = div_col.find('ul')
+        if ul_element:
+            links = ul_element.find_all('a', href=True)
+            for link in links:
+                link_text = clean_text(link.text)
+                if link_text:
+                    see_also_links.append(link_text)
+                    
+    notable_links = []
+    content_div = soup.find('div', id='mw-content-text')
+    if content_div:
+        wiki_links = content_div.find_all('a', href=re.compile(r'/wiki/'))
+        for link in wiki_links[:20]:  # Limit to most relevant links
+            href = link.get('href', '')
+            if not any(exclude in href for exclude in ['Category:', 'File:', 'Template:']):
+                text = clean_text(link.get_text())
+                if text and len(text) > 2:
+                    notable_links.append({
+                        'text': text,
+                        'href': href
+                    })
+
+    key_paragraphs = []
+    parser_output = content_div.find('div', class_='mw-parser-output')
+    if content_div and parser_output:
+        paragraphs = parser_output.find_all('p', recursive=False)[:3]
+        for p in paragraphs:
+            text = clean_text(p.get_text())
+            if len(text) > 50:
+                key_paragraphs.append(text)
                         
-                        while (nextElement && nextElement !== nextHeading) {
-                            if (nextElement.tagName === 'P') {
-                                content += cleanText(nextElement.textContent) + ' ';
-                            }
-                            nextElement = nextElement.nextElementSibling;
-                        }
-                        
-                        if (content.trim()) {
-                            sections.push({
-                                heading: headingText,
-                                content: content.trim()
-                            });
-                        }
-                    });
-                    
-                    // Get key facts from the first few paragraphs
-                    const keyParagraphs = Array.from(document.querySelectorAll('#mw-content-text .mw-parser-output > p'))
-                        .slice(0, 3)
-                        .map(p => cleanText(p.textContent))
-                        .filter(text => text.length > 50);
-                    
-                    // Extract notable links (other Wikipedia articles mentioned)
-                    const notableLinks = Array.from(document.querySelectorAll('#mw-content-text a[href*="/wiki/"]:not([href*="Category:"]):not([href*="File:"]):not([href*="Template:"])'))
-                        .map(link => ({
-                            text: cleanText(link.textContent),
-                            href: link.getAttribute('href')
-                        }))
-                        .filter(link => link.text && link.text.length > 2)
-                        .slice(0, 20); // Limit to most relevant links
-                    
-                    // Get birth/death dates if available (for people)
-                    const birthDeath = {};
-                    const birthElement = document.querySelector('.bday');
-                    const deathElement = document.querySelector('.dday');
-                    if (birthElement) birthDeath.birth = cleanText(birthElement.textContent);
-                    if (deathElement) birthDeath.death = cleanText(deathElement.textContent);
-                    
-                    // Get coordinates if available (for places)
-                    const coordinates = {};
-                    const coordElement = document.querySelector('.geo');
-                    if (coordElement) {
-                        const latElement = coordElement.querySelector('.latitude');
-                        const lonElement = coordElement.querySelector('.longitude');
-                        if (latElement) coordinates.latitude = latElement.textContent;
-                        if (lonElement) coordinates.longitude = lonElement.textContent;
-                    }
-                    
-                    return {
-                        url: window.location.href,
-                        title: title,
-                        introduction: introduction,
-                        infobox: infobox,
-                        categories: categories,
-                        sections: sections,
-                        keyParagraphs: keyParagraphs,
-                        notableLinks: notableLinks,
-                        birthDeath: birthDeath,
-                        coordinates: coordinates,
-                        extractedAt: new Date().toISOString()
-                    };
-                }
-            """)
-            
-            await browser.close()
-            return page_data
-            
-        except Exception as e:
-            await browser.close()
-            raise Exception(f"Failed to scrape Wikipedia page: {str(e)}")
+    # Get categories
+    categories = []
+    category_div = soup.find('div', id='mw-normal-catlinks')
+    if category_div:
+        category_links = category_div.find_all('a')
+        for link in category_links:
+            category_name = clean_text(link.text)
+            if category_name:
+                categories.append(category_name)
+
+    return {
+        'title': title,
+        'url': url,
+        'basic_info': basic_info,
+        'categories': categories,
+        'see_also': see_also_links,
+        'key_paragraphs': key_paragraphs,
+        'notable_links': notable_links
+    }
