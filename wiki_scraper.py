@@ -1,24 +1,20 @@
-from playwright.async_api import async_playwright
-from bs4 import BeautifulSoup
 import re
+import requests
+from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright
+
 
 def clean_text(text):
     if not text:
         return ""
     return re.sub(r'\s+', ' ', text.strip())
 
-
 async def scrape_wikipedia_page(url):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch()
-        page = await browser.new_page()
-        await page.goto(url)
-
-        content = await page.content()
-        soup = BeautifulSoup(content, 'html.parser')
-
-        title = clean_text(await page.title())
-        await browser.close()
+    response = requests.get(url)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    title = soup.find('h1', id='firstHeading').text.strip()
 
     infobox_info = {}
     infobox = soup.find('table', class_='infobox')
