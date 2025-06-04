@@ -24,10 +24,10 @@ async def scrape_wikipedia_page(url):
             header = row.find('th')
             data = row.find('td')
             if header and data:
-                key = clean_text(header.text)
-                value = clean_text(data.text)
-                if key and value:
-                    infobox_info[key] = value
+                label = clean_text(header.text)
+                info = clean_text(data.text)
+                if label and info:
+                    infobox_info[label] = info
                         
     see_also_links = []
     div_col = soup.find('div', class_='div-col')
@@ -40,11 +40,12 @@ async def scrape_wikipedia_page(url):
                 if link_text:
                     see_also_links.append(link_text)
                     
+    # Get first three top-level paragraphs
     key_paragraphs = []
     content_div = soup.find('div', id='mw-content-text')
-    parser_output = content_div.find('div', class_='mw-parser-output')
-    if content_div and parser_output:
-        paragraphs = parser_output.find_all('p', recursive=False)[:3]
+    article_content = content_div.find('div', class_='mw-parser-output')
+    if content_div and article_content:
+        paragraphs = article_content.find_all('p', recursive=False)[:3]
         for p in paragraphs:
             text = clean_text(p.get_text())
             if len(text) > 50:
