@@ -9,9 +9,9 @@ async def get_path_between_articles(start, end):
         page = await browser.new_page()          
         await page.goto(URL) 
         
-        first_input = page.locator('input.react-autosuggest__input').first
+        first_input = page.locator("input").first
         await first_input.fill(start)
-        second_input = page.locator('input.react-autosuggest__input').nth(1)
+        second_input = page.locator("input").nth(1)
         await second_input.fill(end)
         
         await page.get_by_role("button", name="Go!").click()
@@ -30,8 +30,8 @@ async def get_path_between_articles(start, end):
             return [], []
 
         # Randomly select one path
-        #selected_path = path_divs.nth(random.randint(0, path_count-1))
-        selected_path = path_divs.nth(10)
+        selected_path = path_divs.nth(random.randint(0, path_count-1))
+        #selected_path = path_divs.nth(10)
         link_locator = selected_path.locator("a")
         link_count = await link_locator.count()
 
