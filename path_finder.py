@@ -2,7 +2,6 @@ from playwright.async_api import async_playwright
 import random
 
 URL = "https://www.sixdegreesofwikipedia.com/"
-random.seed(7)
 
 async def get_path_between_articles(start, end):
     async with async_playwright() as p:
@@ -31,7 +30,8 @@ async def get_path_between_articles(start, end):
             return [], []
 
         # Randomly select one path
-        selected_path = path_divs.nth(random.randint(0, path_count-1))
+        #selected_path = path_divs.nth(random.randint(0, path_count-1))
+        selected_path = path_divs.nth(10)
         link_locator = selected_path.locator("a")
         link_count = await link_locator.count()
 
@@ -40,7 +40,7 @@ async def get_path_between_articles(start, end):
         for i in range(link_count):
             link = link_locator.nth(i)
             url = await link.get_attribute("href")
-            name_locator = link.locator("div.sc-cTIdZS > p").first
+            name_locator = link.locator("p").first
             name = await name_locator.inner_text()
             # TODO: Check for disambiguation entry
             names.append(name.strip())

@@ -12,7 +12,7 @@ def scrape_wikipedia_page(url):
     response.raise_for_status()
     soup = BeautifulSoup(response.text, 'html.parser')
     
-    title = clean_text(soup.find('h1', id='firstHeading').text)
+    title = clean_text(soup.title.string)
 
     infobox_info = {}
     infobox = soup.find('table', class_='infobox')
@@ -45,7 +45,7 @@ def scrape_wikipedia_page(url):
     if content_div and article_content:
         paragraphs = article_content.find_all('p', recursive=False)[:3]
         for p in paragraphs:
-            text = clean_text(p.get_text())
+            text = clean_text(p.text)
             if len(text) > 50: # Make sure it's relevant
                 key_paragraphs.append(text)
                         
