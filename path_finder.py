@@ -2,7 +2,7 @@ from playwright.async_api import async_playwright
 import random
 
 URL = "https://www.sixdegreesofwikipedia.com/"
-random.seed(3)
+random.seed(7)
 
 async def get_path_between_articles(start, end):
     async with async_playwright() as p:

@@ -1,20 +1,18 @@
 import re
 import requests
 from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright
-
 
 def clean_text(text):
     if not text:
         return ""
     return re.sub(r'\s+', ' ', text.strip())
 
-async def scrape_wikipedia_page(url):
+def scrape_wikipedia_page(url):
     response = requests.get(url)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, 'html.parser')
     
-    title = soup.find('h1', id='firstHeading').text.strip()
+    title = clean_text(soup.find('h1', id='firstHeading').text)
 
     infobox_info = {}
     infobox = soup.find('table', class_='infobox')
@@ -48,7 +46,7 @@ async def scrape_wikipedia_page(url):
         paragraphs = article_content.find_all('p', recursive=False)[:3]
         for p in paragraphs:
             text = clean_text(p.get_text())
-            if len(text) > 50:
+            if len(text) > 50: # Make sure it's relevant
                 key_paragraphs.append(text)
                         
     categories = []
