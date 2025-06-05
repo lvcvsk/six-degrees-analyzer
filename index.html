@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Six Degrees Viewer</title>
+</head>
+
+<body>
+    <h1>Six Degrees of Wikipedia</h1>
+
+    <input id="start" placeholder="Start Article" />
+    <input id="end" placeholder="End Article" />
+    <button id="fetchBtn">Get Path</button>
+
+    <pre id="output" style="white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; margin-top: 20px;"></pre>
+
+    <script>
+        document.getElementById('fetchBtn').addEventListener('click', async () => {
+            const start = document.getElementById('start').value;
+            const end = document.getElementById('end').value;
+            const output = document.getElementById('output');
+            output.textContent = "Loading...";
+
+            try {
+                const res = await fetch(`http://localhost:8000/six_degrees?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+                if (!res.ok) throw new Error("Network response was not ok");
+
+                const data = await res.json();
+                let text = "";
+
+                data.forEach(item => {
+                    text += `${item.first_name} → ${item.second_name}\n\n${item.relationship}\n\n-----------------\n\n`;
+                });
+
+                output.textContent = text || "No data received.";
+            } catch (err) {
+                output.textContent = "Error: " + err.message;
+            }
+        });
+    </script>
+</body>
+
+</html>
