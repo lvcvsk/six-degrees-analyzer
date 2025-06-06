@@ -31,7 +31,6 @@ async def get_path_between_articles(start, end):
 
         # Randomly select one path
         selected_path = path_divs.nth(random.randint(0, path_count-1))
-        #selected_path = path_divs.nth(10)
         link_locator = selected_path.locator("a")
         link_count = await link_locator.count()
 

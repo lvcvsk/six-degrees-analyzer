@@ -47,7 +47,6 @@ def analyze_page_relationship(page1, page2, summary1, summary2, verbose=False):
     if verbose:
         model_info = client.models.get(model=model)
         print(f"Current model input token limit: {model_info.input_token_limit=}")
-        # model_info.input_token_limit=1048576 for gemini 2.5
         total_tokens = client.models.count_tokens(model=model, contents=prompt)
         print("Input total tokens: ", total_tokens)
 
